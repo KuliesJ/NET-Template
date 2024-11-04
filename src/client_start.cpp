@@ -93,7 +93,7 @@ private:
     void sendMessage(Message msg) {
         string mess = msg.message;
         msg.show();
-        //sendto(sockfd, mess.c_str(), mess.size(), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+        sendto(sockfd, mess.c_str(), mess.size(), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
     }
 
     void receiveMessages() {
