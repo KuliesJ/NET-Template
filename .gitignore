@@ -1,0 +1,28 @@
+# Ignorar archivos binarios y de objetos
+*.o
+*.out
+*.a
+*.so
+*.exe
+
+# Ignorar carpetas de salida
+/bin/
+/obj/
+
+# Archivos de registro y configuración
+*.log
+*.tmp
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de respaldo generados por editores
+*.swp
+*.swo
+*~
+
+# Archivos de configuración específicos de IDEs
+.vscode/
+.idea/
+*.user
