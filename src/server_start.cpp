@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
+#include <unordered_map>
 
 using namespace std;
 
@@ -10,6 +11,7 @@ class UDPServer {
 public:
     int sockfd;
     int port;
+    unordered_map<string, sockaddr_in> clients; // Mapa para almacenar nombres y direcciones de clientes
 
     UDPServer(int port) : port(port) {
         // Crear el socket UDP
@@ -19,12 +21,14 @@ public:
             exit(EXIT_FAILURE);
         }
 
-        struct sockaddr_in serverAddr;
+        // Configurar la dirección del servidor
+        sockaddr_in serverAddr;
         memset(&serverAddr, 0, sizeof(serverAddr));
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_addr.s_addr = INADDR_ANY;
         serverAddr.sin_port = htons(port);
 
+        // Enlazar el socket con la dirección y puerto
         if (bind(sockfd, (const struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
             cerr << "Error al enlazar el socket" << endl;
             close(sockfd);
@@ -40,13 +44,14 @@ public:
 
     void start() {
         char buffer[1024];
-        struct sockaddr_in clientAddr;
+        sockaddr_in clientAddr;
         socklen_t len = sizeof(clientAddr);
 
         while (true) {
+            // Recibir mensaje del cliente
             ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&clientAddr, &len);
             if (n > 0) {
-                buffer[n] = '\0';
+                buffer[n] = '\0';  // Asegurarse de que el buffer esté terminado en nulo
                 cout << "Mensaje recibido: " << buffer << endl;
 
                 handleClientMessage(string(buffer), clientAddr);
@@ -57,22 +62,24 @@ public:
     }
 
 private:
-    void handleClientMessage(const string& msg, struct sockaddr_in& clientAddr) {
+    void handleClientMessage(const string& msg, sockaddr_in& clientAddr) {
         char response[1024];
-
         char typeOfMessage = msg[0];
         int nameLength = stoi(msg.substr(1, 4));
         string name = msg.substr(5, nameLength);
-        string padding = msg.substr(5 + nameLength, 500);
-        string additionalData = msg.substr(5 + nameLength + padding.length());
+
         switch (typeOfMessage) {
             case 'n':  // Registrar nombre de usuario
                 cout << "Registrando nombre de usuario: " << name << endl;
+                // Almacenar el c clientAddr clientAddrliente en el mapa
+                clients[name] = clientAddr; 
                 snprintf(response, sizeof(response), "Nombre de usuario %s registrado correctamente", name.c_str());
+                cout << &clientAddr << endl;
                 break;
             
             case 'o':  // Cerrar sesión
                 cout << "Cerrando sesión para el usuario: " << name << endl;
+                clients.erase(name); // Eliminar el cliente del mapa
                 snprintf(response, sizeof(response), "Sesión cerrada correctamente para %s", name.c_str());
                 break;
 
@@ -87,7 +94,7 @@ private:
 };
 
 int main() {
-    UDPServer server(8080);
+    UDPServer server(8080);  // Puerto que debe coincidir con el cliente
     server.start();
     return 0;
 }
