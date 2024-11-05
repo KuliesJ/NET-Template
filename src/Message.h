@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <numeric>
 using namespace std;
 
 class Message {
@@ -24,6 +25,10 @@ public:
     void setUDPFormat(int isEnd, int offset, int size);
     void show();
     string toString();
+    bool isStructure();
+    string getRawMessage();
+    bool matchChecksum();
+    
 private:
     
     string message;

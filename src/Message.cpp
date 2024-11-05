@@ -45,6 +45,35 @@ string Message::toString(){
     return message;
 }
 
+bool Message::isStructure(){
+    return message[995] == 's';
+}
+
+string Message::getRawMessage() {
+    // El mensaje completo se almacena en una variable miembro llamada 'message'
+    size_t paddingStart = message.find('#');
+    
+    // Si se encuentra padding, devolvemos la parte del mensaje antes del padding
+    if (paddingStart != std::string::npos) {
+        return message.substr(0, paddingStart);
+    }
+    
+    // Si no hay padding, devolvemos el mensaje completo sin el checksum
+    return message.substr(0, 992);
+}
+
+bool Message::matchChecksum() {
+    std::string rawMessage = getRawMessage();
+    cout << rawMessage << endl;
+    int expectedChecksum = std::stoi(message.substr(994, 3));
+    cout << expectedChecksum << endl;
+    int actualChecksum = std::accumulate(rawMessage.begin(), rawMessage.begin() + rawMessage.length(), 0);
+
+    // Comparamos el checksum calculado con el esperado
+    cout << actualChecksum % 1000 << endl;
+    return actualChecksum % 1000 == expectedChecksum; // Nos aseguramos de que el checksum esté en un rango de 3 dígitos
+}
+
 int Message::calculateChecksum() {
     int checksum = 0;
     for (char c : message) {
@@ -64,5 +93,5 @@ void Message::setUDPFormat(int isEnd, int offset, int size) {
 }
 
 void Message::show() {
-    cout << message << endl;
+    cout << getRawMessage() << endl;
 }

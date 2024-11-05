@@ -63,8 +63,14 @@ public:
 
 private:
     void handleClientMessage(const string& msg, sockaddr_in& clientAddr) {
-        char typeOfMessage = msg[0];
-        switch (typeOfMessage) {
+        Message mensajito(msg);
+        if(mensajito.matchChecksum()){
+            cout << "Matched checksum\n";
+            
+        if (msg[997] == 's'){
+            cout << "Is structure\n";
+            char typeOfMessage = msg[0];
+            switch (typeOfMessage) {
             case 'n': // Iniciar sesión
                 procedureN(msg, clientAddr);
                 break;
@@ -79,6 +85,8 @@ private:
                 cout << "Something unexpected happened" << endl;
                 //snprintf(response, sizeof(response), "Comando no reconocido");
                 break;
+        }
+        }
         }
 
         // Enviar respuesta al cliente
