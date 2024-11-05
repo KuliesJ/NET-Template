@@ -8,8 +8,12 @@ BIN_DIR = bin
 # Archivos fuente y objetivos
 CLIENT_SRC = $(SRC_DIR)/client_start.cpp
 SERVER_SRC = $(SRC_DIR)/server_start.cpp
+MESSAGE_SRC = $(SRC_DIR)/Message.cpp
+
 CLIENT_OBJ = $(OBJ_DIR)/client_start.o
 SERVER_OBJ = $(OBJ_DIR)/server_start.o
+MESSAGE_OBJ = $(OBJ_DIR)/Message.o
+
 CLIENT_BIN = $(BIN_DIR)/client
 SERVER_BIN = $(BIN_DIR)/server
 
@@ -17,12 +21,12 @@ SERVER_BIN = $(BIN_DIR)/server
 all: $(CLIENT_BIN) $(SERVER_BIN)
 
 # Compilar cliente
-$(CLIENT_BIN): $(CLIENT_OBJ)
+$(CLIENT_BIN): $(CLIENT_OBJ) $(MESSAGE_OBJ)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Compilar servidor
-$(SERVER_BIN): $(SERVER_OBJ)
+$(SERVER_BIN): $(SERVER_OBJ) $(MESSAGE_OBJ)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 

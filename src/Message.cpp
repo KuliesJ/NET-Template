@@ -37,6 +37,14 @@ void Message::addMessage(const string& letter) {
     message += fixNumberString(letter.length(), 5) + letter;
 }
 
+void Message::addBool(char value){
+    message += value;
+}
+
+string Message::toString(){
+    return message;
+}
+
 int Message::calculateChecksum() {
     int checksum = 0;
     for (char c : message) {

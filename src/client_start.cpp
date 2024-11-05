@@ -13,6 +13,7 @@ public:
     int port;
     string host;
     string nickname;
+    bool isAlive = true;
     UDPClient(const string& host, int port) : host(host), port(port) {
         // Crear el socket UDP
         sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -40,7 +41,7 @@ public:
 
     void start(){
         char procedure;
-        while(true){
+        while(isAlive){
             displayMenu();
             cin >> procedure;
             processInput(procedure);
@@ -51,7 +52,7 @@ private:
     void displayMenu() {
         cout << "Seleccione una opción:\n";
         cout << "n: Registrar nombre de usuario\n";
-        cout << "m: Enviar mensaje\n";
+        cout << "b: Broadcast mensaje\n";
         cout << "o: Salir\n";
         cout << "Ingrese su elección: ";
     }
@@ -63,6 +64,9 @@ private:
         case 'n':
             procedureN();
             break;
+        case 'b':
+            procedureB();
+            break;
         case 'o':
             procedureO();
             break;
@@ -72,6 +76,17 @@ private:
         }
     }
     
+    void procedureB(){
+        Message msg;
+        string broadcastableMessage;
+        msg.setProtocolBegin('b');
+        cout << "Message to broadcast: ";
+        cin >> broadcastableMessage;
+        msg.addMessage(broadcastableMessage);
+        msg.setUDPFormat(1,0,1000);
+        sendMessage(msg);
+    }
+
     void procedureN(){
         Message msg;
         msg.setProtocolBegin('n');
@@ -88,12 +103,23 @@ private:
         cout << "You requested to logout\n";
         msg.setUDPFormat(1,0,1000);
         sendMessage(msg);
+        isAlive = false;
     }
     
     void sendMessage(Message msg) {
-        string mess = msg.message;
+        string mess = msg.toString();
         msg.show();
         sendto(sockfd, mess.c_str(), mess.size(), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+    }
+
+    void receiveN(const std::string& message) {
+        if(message[1] == '1'){
+            cout << "\nYou logged in as: " << nickname << endl;
+        }
+        else{
+            nickname = "";
+            printf("\nLogin failed\n");
+        }
     }
 
     void receiveMessages() {
@@ -101,16 +127,25 @@ private:
         while (true) {
             socklen_t len = sizeof(serverAddr);
             ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr*)&serverAddr, &len);
+
             if (n > 0) {
                 buffer[n] = '\0';
-                cout << "Mensaje recibido: " << buffer << endl;
+                std::string message(buffer);
+
+                switch (message[0]) {
+                    case 'N':
+                        receiveN(message);
+                        break;
+
+                    default:
+                        std::cout << "Unknown message type: " << message << std::endl;
+                        break;
+                }
             } else {
-                cerr << "Error al recibir mensaje" << endl;
-                break;
+                std::cerr << "Error receiving message" << std::endl;
             }
         }
     }
-
 
 };
 

@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <unordered_map>
-
+#include "Message.h"
 using namespace std;
 
 class UDPServer {
@@ -63,34 +63,91 @@ public:
 
 private:
     void handleClientMessage(const string& msg, sockaddr_in& clientAddr) {
-        char response[1024];
         char typeOfMessage = msg[0];
-        int nameLength = stoi(msg.substr(1, 4));
-        string name = msg.substr(5, nameLength);
-
         switch (typeOfMessage) {
-            case 'n':  // Registrar nombre de usuario
-                cout << "Registrando nombre de usuario: " << name << endl;
-                // Almacenar el c clientAddr clientAddrliente en el mapa
-                clients[name] = clientAddr; 
-                snprintf(response, sizeof(response), "Nombre de usuario %s registrado correctamente", name.c_str());
-                cout << &clientAddr << endl;
+            case 'n': // Iniciar sesión
+                procedureN(msg, clientAddr);
                 break;
-            
+            case 'b':  // Cerrar sesión
+                procedureB(msg, clientAddr);
+                break;
             case 'o':  // Cerrar sesión
-                cout << "Cerrando sesión para el usuario: " << name << endl;
-                clients.erase(name); // Eliminar el cliente del mapa
-                snprintf(response, sizeof(response), "Sesión cerrada correctamente para %s", name.c_str());
+                procedureO(msg, clientAddr);
                 break;
 
             default:
-                snprintf(response, sizeof(response), "Comando no reconocido");
+                cout << "Something unexpected happened" << endl;
+                //snprintf(response, sizeof(response), "Comando no reconocido");
                 break;
         }
 
         // Enviar respuesta al cliente
-        sendto(sockfd, response, strlen(response), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
+        //sendto(sockfd, response, strlen(response), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
     }
+
+    void procedureN(string msg, sockaddr_in clientAddr) {
+        int nameLength = stoi(msg.substr(1, 4));
+        string name = msg.substr(1 + 4, nameLength);
+        cout << "Nombre recibido: " << name << endl;
+
+        Message response;
+        response.setProtocolBegin('N');
+
+        // Verificar si el nombre ya existe en el mapa
+        if (clients.find(name) == clients.end()) {
+            // Si no existe, agregarlo
+            clients[name] = clientAddr;
+            response.addBool('1');  // Éxito
+        } else {
+            // Si ya existe, indicar fallo
+            response.addBool('0');  // Fallo
+        }
+
+        response.setUDPFormat(1,0,1000);
+
+        // Enviar respuesta al cliente
+        string responseStr = response.toString();
+        sendto(sockfd, responseStr.c_str(), responseStr.size(), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
+    }
+
+    void procedureB(string msg, sockaddr_in clientAddr){
+        cout << "Broadcast" << endl;
+    }
+
+    void procedureO(string msg, sockaddr_in clientAddr) {
+        bool found = false;
+
+        // Buscar en el mapa de clientes la dirección `clientAddr`
+        for (auto it = clients.begin(); it != clients.end(); ++it) {
+            if (it->second.sin_addr.s_addr == clientAddr.sin_addr.s_addr &&
+                it->second.sin_port == clientAddr.sin_port) {
+                // Si encontramos una coincidencia, eliminamos la entrada
+                cout << "Cerrando sesión para el cliente: " << it->first << endl;
+                clients.erase(it);
+                found = true;
+                break;
+            }
+        }
+        /*
+        // Crear y configurar la respuesta para el cliente
+        Message response;
+        response.setProtocolBegin('O');
+        response.addBool(found ? '1' : '0');  // '1' para éxito, '0' para fallo
+        response.setUDPFormat(1, 0, 1000);
+
+        // Enviar respuesta al cliente
+        string responseStr = response.toString();
+        //sendto(sockfd, responseStr.c_str(), responseStr.size(), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
+        */
+        // Mostrar el resultado de la operación en el servidor
+        if (found) {
+            cout << "Cliente eliminado exitosamente." << endl;
+        } else {
+            cout << "Error: cliente no encontrado en el mapa." << endl;
+        }
+        
+    }
+
 };
 
 int main() {
