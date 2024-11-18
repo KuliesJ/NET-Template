@@ -3,7 +3,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring>
-#include <unordered_map>
+#include <map>
 #include "Message.h"
 using namespace std;
 
@@ -11,7 +11,8 @@ class UDPServer {
 public:
     int sockfd;
     int port;
-    unordered_map<string, sockaddr_in> clients; // Mapa para almacenar nombres y direcciones de clientes
+    map<string, pair<string, int>> clientsByName;  // Mapa de nombre a IP y puerto
+    map<int, string> clientsByPort;                // Mapa de puerto a nombre
 
     UDPServer(int port) : port(port) {
         // Crear el socket UDP
@@ -64,33 +65,32 @@ public:
 private:
     void handleClientMessage(const string& msg, sockaddr_in& clientAddr) {
         Message mensajito(msg);
-        if(mensajito.matchChecksum()){
+        if (mensajito.matchChecksum()) {
             cout << "Matched checksum\n";
-            
-        if (msg[997] == 's'){
-            cout << "Is structure\n";
-            char typeOfMessage = msg[0];
-            switch (typeOfMessage) {
-            case 'n': // Iniciar sesión
-                procedureN(msg, clientAddr);
-                break;
-            case 'b':  // Cerrar sesión
-                procedureB(msg, clientAddr);
-                break;
-            case 'o':  // Cerrar sesión
-                procedureO(msg, clientAddr);
-                break;
 
-            default:
-                cout << "Something unexpected happened" << endl;
-                //snprintf(response, sizeof(response), "Comando no reconocido");
-                break;
-        }
-        }
-        }
+            if (msg[997] == 's') {
+                cout << "Is structure\n";
+                char typeOfMessage = msg[0];
+                switch (typeOfMessage) {
+                    case 'n': // Iniciar sesión
+                        procedureN(msg, clientAddr);
+                        break;
+                    case 'm':
+                        procedureM(msg, clientAddr);
+                        break;
+                    case 'b':  // Cerrar sesión
+                        procedureB(msg, clientAddr);
+                        break;
+                    case 'o':  // Cerrar sesión
+                        procedureO(msg, clientAddr);
+                        break;
 
-        // Enviar respuesta al cliente
-        //sendto(sockfd, response, strlen(response), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
+                    default:
+                        cout << "Algo inesperado ocurrió" << endl;
+                        break;
+                }
+            }
+        }
     }
 
     void procedureN(string msg, sockaddr_in clientAddr) {
@@ -101,61 +101,64 @@ private:
         Message response;
         response.setProtocolBegin('N');
 
-        // Verificar si el nombre ya existe en el mapa
-        if (clients.find(name) == clients.end()) {
-            // Si no existe, agregarlo
-            clients[name] = clientAddr;
+        // Extraemos la IP y el puerto del cliente
+        string ip = inet_ntoa(clientAddr.sin_addr);
+        int port = ntohs(clientAddr.sin_port);
+
+        if (clientsByName.find(name) == clientsByName.end()) {
+            // Guardamos en el mapa clientsByName (nombre -> (IP, puerto))
+            clientsByName[name] = make_pair(ip, port);
+            // También guardamos en el mapa clientsByPort (puerto -> nombre)
+            clientsByPort[port] = name;
             response.addBool('1');  // Éxito
         } else {
-            // Si ya existe, indicar fallo
             response.addBool('0');  // Fallo
         }
 
-        response.setUDPFormat(1,0,1000);
+        response.setUDPFormat(1, 0, 1000);
 
         // Enviar respuesta al cliente
         string responseStr = response.toString();
         sendto(sockfd, responseStr.c_str(), responseStr.size(), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
     }
 
-    void procedureB(string msg, sockaddr_in clientAddr){
+    void procedureM(string msg, sockaddr_in clientAddr) {
+        cout << "Message: " << msg << endl;
+        
+        // Extraemos el puerto del sockaddr_in
+        int port = ntohs(clientAddr.sin_port);
+        if (clientsByPort.find(port) != clientsByPort.end()) {
+            cout << "Message from: " << clientsByPort[port] << endl;
+        } else {
+            cout << "Cliente no encontrado para el puerto: " << port << endl;
+        }
+    }
+
+
+    void procedureB(string msg, sockaddr_in clientAddr) {
         cout << "Broadcast" << endl;
     }
 
     void procedureO(string msg, sockaddr_in clientAddr) {
         bool found = false;
+        int port = ntohs(clientAddr.sin_port);
 
-        // Buscar en el mapa de clientes la dirección `clientAddr`
-        for (auto it = clients.begin(); it != clients.end(); ++it) {
-            if (it->second.sin_addr.s_addr == clientAddr.sin_addr.s_addr &&
-                it->second.sin_port == clientAddr.sin_port) {
-                // Si encontramos una coincidencia, eliminamos la entrada
-                cout << "Cerrando sesión para el cliente: " << it->first << endl;
-                clients.erase(it);
-                found = true;
-                break;
-            }
+        // Buscar en el mapa de puerto a nombre
+        auto it = clientsByPort.find(port);
+        if (it != clientsByPort.end()) {
+            // Si encontramos el puerto, borramos tanto del mapa clientsByName como del mapa clientsByPort
+            cout << "Cerrando sesión para el cliente: " << it->second << endl;
+            clientsByName.erase(it->second);   // Borrar del mapa de nombre a IP+puerto
+            clientsByPort.erase(it);           // Borrar del mapa de puerto a nombre
+            found = true;
         }
-        /*
-        // Crear y configurar la respuesta para el cliente
-        Message response;
-        response.setProtocolBegin('O');
-        response.addBool(found ? '1' : '0');  // '1' para éxito, '0' para fallo
-        response.setUDPFormat(1, 0, 1000);
 
-        // Enviar respuesta al cliente
-        string responseStr = response.toString();
-        //sendto(sockfd, responseStr.c_str(), responseStr.size(), 0, (struct sockaddr *)&clientAddr, sizeof(clientAddr));
-        */
-        // Mostrar el resultado de la operación en el servidor
         if (found) {
             cout << "Cliente eliminado exitosamente." << endl;
         } else {
             cout << "Error: cliente no encontrado en el mapa." << endl;
         }
-        
     }
-
 };
 
 int main() {

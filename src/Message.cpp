@@ -95,3 +95,20 @@ void Message::setUDPFormat(int isEnd, int offset, int size) {
 void Message::show() {
     cout << getRawMessage() << endl;
 }
+
+#include <chrono>
+#include <ctime>
+#include <sstream>
+
+void Message::addDate() {
+        // Obtener la fecha y hora actual
+        auto now = chrono::system_clock::now();
+        time_t t = chrono::system_clock::to_time_t(now);
+
+        // Usamos strftime para formatear la fecha
+        char fecha[100];
+        strftime(fecha, sizeof(fecha), "%Y-%m-%d %H:%M:%S", localtime(&t));
+        
+        // Agregar la fecha al mensaje
+        message += fecha;
+    }

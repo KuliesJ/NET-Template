@@ -28,6 +28,8 @@ public:
     bool isStructure();
     string getRawMessage();
     bool matchChecksum();
+
+    void addDate();
     
 private:
     

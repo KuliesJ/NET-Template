@@ -67,6 +67,9 @@ private:
         case 'b':
             procedureB();
             break;
+        case 'm':
+            procedureM();
+            break;
         case 'o':
             procedureO();
             break;
@@ -83,6 +86,24 @@ private:
         cout << "Message to broadcast: ";
         cin >> broadcastableMessage;
         msg.addMessage(broadcastableMessage);
+        msg.setUDPFormat(1,0,1000);
+        sendMessage(msg);
+    }
+
+    void procedureM() {
+        Message msg;
+        msg.setProtocolBegin('m');
+
+        string destiny, message;
+        cout << "Send to: ";
+        cin >> destiny;
+        cin.ignore();
+        cout << "Message: ";
+        getline(cin, message);
+
+        msg.addName(destiny);
+        msg.addMessage(message);
+        msg.addDate();
         msg.setUDPFormat(1,0,1000);
         sendMessage(msg);
     }
