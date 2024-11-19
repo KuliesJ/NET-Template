@@ -1,49 +1,49 @@
-# Variables
+# Definimos el compilador y las banderas
 CXX = g++
-CXXFLAGS = -Wall -std=c++11
+CXXFLAGS = -Wall -std=c++17
+
+# Carpeta donde se encuentran los archivos fuente
 SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
+# Carpeta donde se almacenarán los archivos objeto
+OBJ_DIR = bin
 
-# Archivos fuente y objetivos
-CLIENT_SRC = $(SRC_DIR)/client_start.cpp
-SERVER_SRC = $(SRC_DIR)/server_start.cpp
-MESSAGE_SRC = $(SRC_DIR)/Message.cpp
+# Archivos fuente
+CLIENT_SRC = $(SRC_DIR)/client.cpp
+SERVER_SRC = $(SRC_DIR)/server.cpp
 
-CLIENT_OBJ = $(OBJ_DIR)/client_start.o
-SERVER_OBJ = $(OBJ_DIR)/server_start.o
-MESSAGE_OBJ = $(OBJ_DIR)/Message.o
+# Archivos objeto generados en la carpeta bin
+CLIENT_OBJ = $(OBJ_DIR)/client.o
+SERVER_OBJ = $(OBJ_DIR)/server.o
 
-CLIENT_BIN = $(BIN_DIR)/client
-SERVER_BIN = $(BIN_DIR)/server
+# Ejecutables a generar en el directorio raíz
+CLIENT_EXEC = client
+SERVER_EXEC = server
 
-# Objetivo por defecto
-all: $(CLIENT_BIN) $(SERVER_BIN)
+# Regla por defecto: compila los ejecutables
+all: $(CLIENT_EXEC) $(SERVER_EXEC)
 
-# Compilar cliente
-$(CLIENT_BIN): $(CLIENT_OBJ) $(MESSAGE_OBJ)
-	@mkdir -p $(BIN_DIR)
+# Crear la carpeta bin si no existe
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+# Regla para compilar el ejecutable client
+$(CLIENT_EXEC): $(CLIENT_OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# Compilar servidor
-$(SERVER_BIN): $(SERVER_OBJ) $(MESSAGE_OBJ)
-	@mkdir -p $(BIN_DIR)
+# Regla para compilar el ejecutable server
+$(SERVER_EXEC): $(SERVER_OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# Compilar archivos .cpp a .o
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(OBJ_DIR)
+# Regla para compilar los archivos .cpp a .o (archivos objeto) en la carpeta bin
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Limpiar archivos compilados
+# Limpiar los archivos generados
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR) $(CLIENT_EXEC) $(SERVER_EXEC)
 
-# Ejecutar cliente y servidor
-run_client: $(CLIENT_BIN)
-	./$(CLIENT_BIN)
+# Instalar los binarios (opcional)
+install: $(CLIENT_EXEC) $(SERVER_EXEC)
+	# Añadir los comandos de instalación si es necesario (por ejemplo, copiar a /usr/local/bin)
 
-run_server: $(SERVER_BIN)
-	./$(SERVER_BIN)
-
-.PHONY: all clean run_client run_server
+.PHONY: all clean install
